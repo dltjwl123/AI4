@@ -1,0 +1,23 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.2.32519.379
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "minicontest2(modified)1", "minicontest2(modified)1.pyproj", "{804E70FD-B3BA-4678-ACAA-D0C4FBB7B417}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{804E70FD-B3BA-4678-ACAA-D0C4FBB7B417}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{804E70FD-B3BA-4678-ACAA-D0C4FBB7B417}.Release|Any CPU.ActiveCfg = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {8E20A638-F76B-4949-A464-5A0A3AC28F39}
+	EndGlobalSection
+EndGlobal
