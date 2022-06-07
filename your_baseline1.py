@@ -22,7 +22,7 @@ import game
 #################
 
 def createTeam(firstIndex, secondIndex, isRed,
-               first = 'DummyAgent', second = 'DummyAgent'):
+               first = 'attackAgent', second = 'DefenceAgent'):
   """
   This function should return a list of two agents that will form the
   team, initialized using firstIndex and secondIndex as their agent
@@ -49,6 +49,8 @@ red_enemy_targets = []
 blue_food_targets= []
 blue_enemy_targets = []
 class DummyAgent(CaptureAgent):
+
+class AttackAgent(CaptureAgent):
   """
   A Dummy agent to serve as an example of the necessary agent structure.
   You should look at baselineTeam.py for more details about how to
@@ -82,6 +84,9 @@ class DummyAgent(CaptureAgent):
     self.attack = False #True = pacman, False = ghost
     self.target = None
     self.startPos = gameState.getAgentPosition(self.index)
+    enemies=self.getOpponents()
+    print("type = ", type(enemies), "enemies = ", enemies)
+
 
 
   def chooseAction(self, gameState):
@@ -112,5 +117,8 @@ class DummyAgent(CaptureAgent):
   def attackValue(self, gameState, action):
       
       
+    enemies=self.getOpponents()
+    print("type = ", type(enemies), "enemies = ", enemies)
+    return random.choice(actions)
 
 
