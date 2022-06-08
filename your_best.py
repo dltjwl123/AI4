@@ -23,7 +23,7 @@ import game
 #################
 
 def createTeam(firstIndex, secondIndex, isRed,
-               first = 'DummyAgent', second = 'DummyAgent'):
+               first = 'MyAgent', second = 'MyAgent'):
   """
   This function should return a list of two agents that will form the
   team, initialized using firstIndex and secondIndex as their agent
@@ -46,7 +46,7 @@ def createTeam(firstIndex, secondIndex, isRed,
 # Agents #
 ##########
 
-class DummyAgent(CaptureAgent):
+class MyAgent(CaptureAgent):
   """
   A Dummy agent to serve as an example of the necessary agent structure.
   You should look at baselineTeam.py for more details about how to
@@ -77,8 +77,10 @@ class DummyAgent(CaptureAgent):
     '''
     Your initialization code goes here, if you need any.
     '''
-    self.depthLimit = 3
+    self.depthLimit = 4
     self.startPos = gameState.getAgentPosition(self.index)
+    self.startState = gameState
+    self.life = 10
 
   def chooseAction(self, gameState):
     """
@@ -89,11 +91,9 @@ class DummyAgent(CaptureAgent):
     '''
     You should change this in your own agent.
     '''
-    enemies = self.getOpponents(gameState)
-    ghosts = []
-    for ene in enemies:
-        if not gameState.getAgentState(ene).isPacman:
-            ghosts.append(ene)
+    myPos = gameState.getAgentPosition(self.index)
+    if myPos == self.startPos: self.life = self.life - 1
+    ghosts = self.getGhosts(gameState)
     bestAction = actions[0]
     value = -99999
     maximum = 99999
@@ -105,6 +105,7 @@ class DummyAgent(CaptureAgent):
             value = ghostValue
             bestAction = action
         minimum = max(minimum, value)
+    #print("best action = ", bestAction)
     return bestAction
   
   def pacmanTurn(self, gameState, ghosts, curDepth, maximum, minimum):
@@ -115,6 +116,8 @@ class DummyAgent(CaptureAgent):
           succ = gameState.generateSuccessor(self.index, action)
           if succ.isOver() or curDepth == self.depthLimit:
               tmp = self.evaluate(gameState)
+              value = max(value, tmp)
+              return value
           tmp = self.ghostTurn(succ, ghosts, curDepth + 1, maximum, minimum)
           value = max(value, tmp)
           if value > maximum: return value
@@ -122,22 +125,23 @@ class DummyAgent(CaptureAgent):
       return value
 
   def ghostTurn(self, gameState, ghosts, curDepth, maximum, minimum):
-      
       value = 99999
       tmp = value
       next_succ = gameState
+      pacPos = gameState.getAgentPosition(self.index)
       for ghost in ghosts:
           chaseDist = 99999
           chaseAction = None
           actions = gameState.getLegalActions(ghost)
+          ghostPos = gameState.getAgentPosition(ghost)
           for action in actions:
-              if action == Directions.NORT
-              dist = self.getMazeDistance(ghost, self.index)
+              Pos = self.getPos(ghostPos, action)
+              dist = self.getMazeDistance(Pos, pacPos)
               if chaseDist > dist:
                   chaseDist = dist
                   chaseAction = action
           next_succ = next_succ.generateSuccessor(ghost, chaseAction)
-      tmp = self.pacmanTurn(next_succ,ghosts,curDepth, maximum, minimum)
+      tmp = self.pacmanTurn(next_succ, ghosts, curDepth, maximum, minimum)
       value = min(value, tmp)
       if value < minimum: return value
       maximum = min(maximum, value)
@@ -146,28 +150,68 @@ class DummyAgent(CaptureAgent):
   def evaluate(self, gameState):
       features = self.getFeatures(gameState)
       weights = self.getWeights(gameState)
-      print("features = ", features, " total = ", features * weights)
+      #print("features = ", features, " total = ", features * weights)
       return features * weights
   
   def getFeatures(self, gameState):
       features = util.Counter()
       pacPos = gameState.getAgentPosition(self.index)
-      #dead
-      if pacPos == self.startPos:
-          features["dead"] = 1
-      else: features["dead"] = 0
+      #life
+      features["life"] = self.life
+      #capsule
+      ghosts = self.getGhosts(gameState)
+      scaredTime = 100
+      capsules = self.getCapsules(gameState)
+      close_cap_dist = 987654321
+      if ghosts:
+          scaredTime = gameState.getAgentState(ghosts[0]).scaredTimer
+      if scaredTime == 0 and capsules:
+          for cap in capsules:
+              close_cap_dist = min(close_cap_dist, self.getMazeDistance(pacPos, cap))
+      else: close_cap_dist = 0
+      features["capsule"] = -close_cap_dist
+      #eat capsule
+      preState = self.getPreviousObservation()
+      if preState == None: preState = self.startState
+      preCapsules = self.getCapsules(preState)
+      if len(preCapsules) > len(capsules):
+          features["eat capsule"] = 1
+      else: features["eat capsule"] = 0
       #close food
       foods = self.getFood(gameState).asList()
       close_food_dist = 987654321
       for food in foods:
           close_food_dist = min(close_food_dist, self.getMazeDistance(pacPos, food))
-      features["close food"] = -close_food_dist
+      features["food"] = -close_food_dist
       #eat
       Carrying = gameState.getAgentState(self.index).numCarrying
       features["eat"] = Carrying
+      #home
+      if Carrying > 0 and scaredTime == 0:
+          teammate = self.index
+          team = self.getTeam(gameState)
+          for i in team:
+              if i != self.index: teammate = i
+          teamPos = gameState.getAgentPosition(teammate)
+          features["home"] = -self.getMazeDistance(pacPos, teamPos)
+      else: features["home"] = 0
       return features
       
   def getWeights(self, gameState):
-      return {"dead":-9999999, "close food": 1, "eat": 100}
-      
-
+      return {"life":0,"capsule": 1, "eat capsule": 200, "food": 1, "eat": 100, "home": 0}
+  
+  def getPos(self, Pos, action):
+      x, y = Pos
+      if action == Directions.NORTH: y = y + 1
+      elif action == Directions.EAST: x = x + 1
+      elif action == Directions.SOUTH: y = y - 1
+      elif action == Directions.WEST: x = x - 1
+      return (x, y)
+  
+  def getGhosts(self, gameState):
+      enemies = self.getOpponents(gameState)
+      ghosts = []
+      for ene in enemies:
+        if not gameState.getAgentState(ene).isPacman:
+            ghosts.append(ene)
+      return ghosts
