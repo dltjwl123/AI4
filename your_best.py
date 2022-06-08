@@ -78,6 +78,7 @@ class DummyAgent(CaptureAgent):
     Your initialization code goes here, if you need any.
     '''
     self.depthLimit = 3
+    self.startPos = gameState.getAgentPosition(self.index)
 
   def chooseAction(self, gameState):
     """
@@ -99,7 +100,7 @@ class DummyAgent(CaptureAgent):
     minimum =-99999
     for action in actions:
         succ = gameState.generateSuccessor(self.index, action)
-        ghostValue = self.ghostTurn(succ, ghosts, 1, ghosts[0], maximum, minimum)
+        ghostValue = self.ghostTurn(succ, ghosts, 1, maximum, minimum)
         if ghostValue > value:
             value = ghostValue
             bestAction = action
@@ -107,40 +108,66 @@ class DummyAgent(CaptureAgent):
     return bestAction
   
   def pacmanTurn(self, gameState, ghosts, curDepth, maximum, minimum):
-      print("pacmanTurn")
       actions = gameState.getLegalActions(self.index)
       value = -99999
       tmp = value
       for action in actions:
           succ = gameState.generateSuccessor(self.index, action)
-          tmp = self.ghostTurn(succ, ghosts, curDepth + 1, ghosts[0], maximum, minimum)
-          value = max(v, tmp)
+          if succ.isOver() or curDepth == self.depthLimit:
+              tmp = self.evaluate(gameState)
+          tmp = self.ghostTurn(succ, ghosts, curDepth + 1, maximum, minimum)
+          value = max(value, tmp)
           if value > maximum: return value
           minimum = max(minimum, value)
       return value
 
-  def ghostTurn(self, gameState, ghosts, curDepth, agentID, maximum, minimum):
-      print("ghostTurn"," ID = ", agentID)
-      ghostEndNum = ghosts[-1]
-      actions = gameState.getLegalActions(agentID)
+  def ghostTurn(self, gameState, ghosts, curDepth, maximum, minimum):
+      
       value = 99999
       tmp = value
-      for action in actions:
-          succ = gameState.generateSuccessor(agentID, action)
-          if agentID == ghostEndNum:
-              if curDepth == self.depthLimit: tmp = self.evaluate(gameState)
-              else: tmp = self.pacmanTurn(succ,ghosts,curDepth, maximum, minimum)
-          else:
-              tmp = self.ghostTurn(succ, ghosts, curDepth, ghosts[1], maximum, minimum)
-          value = min(value, tmp)
-          if value < minimum: return value
-          maximum = min(maximum, value)
+      next_succ = gameState
+      for ghost in ghosts:
+          chaseDist = 99999
+          chaseAction = None
+          actions = gameState.getLegalActions(ghost)
+          for action in actions:
+              if action == Directions.NORT
+              dist = self.getMazeDistance(ghost, self.index)
+              if chaseDist > dist:
+                  chaseDist = dist
+                  chaseAction = action
+          next_succ = next_succ.generateSuccessor(ghost, chaseAction)
+      tmp = self.pacmanTurn(next_succ,ghosts,curDepth, maximum, minimum)
+      value = min(value, tmp)
+      if value < minimum: return value
+      maximum = min(maximum, value)
       return value
 
   def evaluate(self, gameState):
-      foods = self.getFood(gameState).asList()
-
+      features = self.getFeatures(gameState)
+      weights = self.getWeights(gameState)
+      print("features = ", features, " total = ", features * weights)
       return features * weights
-
+  
+  def getFeatures(self, gameState):
+      features = util.Counter()
+      pacPos = gameState.getAgentPosition(self.index)
+      #dead
+      if pacPos == self.startPos:
+          features["dead"] = 1
+      else: features["dead"] = 0
+      #close food
+      foods = self.getFood(gameState).asList()
+      close_food_dist = 987654321
+      for food in foods:
+          close_food_dist = min(close_food_dist, self.getMazeDistance(pacPos, food))
+      features["close food"] = -close_food_dist
+      #eat
+      Carrying = gameState.getAgentState(self.index).numCarrying
+      features["eat"] = Carrying
+      return features
+      
+  def getWeights(self, gameState):
+      return {"dead":-9999999, "close food": 1, "eat": 100}
       
 
