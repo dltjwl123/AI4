@@ -45,8 +45,8 @@ def createTeam(firstIndex, secondIndex, isRed,
 ##########
 # Agents #
 ##########
-global team_attack
-team_attack = False
+global attacker
+attacker = None
 class MyAgent(CaptureAgent):
   """
   A Dummy agent to serve as an example of the necessary agent structure.
@@ -83,10 +83,10 @@ class MyAgent(CaptureAgent):
     self.startState = gameState
     self.life = 10
     self.mode = None
-    global team_attack
-    if not team_attack: 
+    global attacker
+    if attacker == None: 
         self.mode = "attack"
-        team_attack = True
+        attacker = self.index
     else: self.mode = "defence"
   def chooseAction(self, gameState):
     """
@@ -107,9 +107,50 @@ class MyAgent(CaptureAgent):
                 best = tmp
                 bestAction = action
         return bestAction
+    foods = self.getFood(gameState).asList()
+    myStat = gameState.getAgentState(self.index)
+    carrying = myStat.numCarrying
+    if (myStat.isPacman and len(foods) <= 2) or carrying > 3: self.mode = "escape"
+    else:
+        global attacker
+        if self.index == attacker: self.mode = "attack"
+        else: "defence"
     if self.mode == "attack": bestAction = self.attackAction(gameState)
     elif self.mode == "defence": bestAction = self.defenceAction(gameState)
+    elif self.mode == "escape": bestAction = self.escapeAction(gameState)
     return bestAction
+
+  def escapeAction(self, gameState):
+      actions = gameState.getLegalActions(self.index)
+      bestAction = actions[0]
+      bestScore = -9999999
+      for action in actions:
+          succ = gameState.generateSuccessor(self.index, action)
+          score = self.escapeEvaluate(succ)
+          if score > bestScore:
+              bestScore = score
+              bestAction = action
+      return bestAction
+
+  def escapeEvaluate(self, gameState):
+      features = self.getEscapeFeatures(gameState)
+      weights = self.getEscapeWeights()
+      
+      return features * weights
+   
+  def getEscapeFeatures(self, gameState):
+      features = util.Counter()
+      #dist
+      myPos = gameState.getAgentPosition(self.index)
+      features["dist"] = self.getMazeDistance(myPos, self.startPos)
+      #life
+      features["life"] = self.life
+      
+      return features
+
+  def getEscapeWeights(self):
+      return {"dist": -1, "life": 100}
+
   def defenceAction(self, gameState):
       actions = gameState.getLegalActions(self.index)
       bestAction = actions[0]
@@ -120,7 +161,6 @@ class MyAgent(CaptureAgent):
           if score > bestScore:
               bestScore = score
               bestAction = action
-      print("defAction = ", bestAction)
       return bestAction
    
   def defEvaluate(self, gameState):
@@ -157,11 +197,10 @@ class MyAgent(CaptureAgent):
       #ghost
       if myState.isPacman: features["ghost"] = 0
       else: features["ghost"] = 1
-      print(features)
       return features
 
   def getDefWeight(self):
-      return {"left invaders": -100, "dist": -1, "ghost": 100}
+      return {"left invaders": -100, "dist": -1, "ghost": 1000}
       
   def attackAction(self, gameState):
     actions = gameState.getLegalActions(self.index)
@@ -255,19 +294,11 @@ class MyAgent(CaptureAgent):
       #eat
       Carrying = gameState.getAgentState(self.index).numCarrying
       features["left food"] = len(foods)
-      #home
-      if Carrying > 0 and scaredTime == 0:
-          teammate = self.index
-          team = self.getTeam(gameState)
-          for i in team:
-              if i != self.index: teammate = i
-          teamPos = gameState.getAgentPosition(teammate)
-          features["home"] = -self.getMazeDistance(pacPos, teamPos)
-      else: features["home"] = 0
+
       return features
       
   def getWeights(self, gameState):
-      return {"life":0,"capsule": -2, "eat capsule": -200, "food": -1, "left food": -100, "home": 0}
+      return {"life":0,"capsule": -1, "eat capsule": -200, "food": -1, "left food": -100}
   
   def getPos(self, Pos, action):
       x, y = Pos
