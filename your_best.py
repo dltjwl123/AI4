@@ -81,16 +81,44 @@ class MyAgent(CaptureAgent):
     self.startPos = gameState.getAgentPosition(self.index)
     self.startState = gameState
     self.life = 10
+    self.mode = "attack"
+    if self.index % 2: self.mode = "defence"
 
   def chooseAction(self, gameState):
     """
     Picks among actions randomly.
     """
     actions = gameState.getLegalActions(self.index)
-
     '''
     You should change this in your own agent.
     '''
+
+    bestAction = actions[0]
+    if self.mode == "attack": bestAction = self.attackAction(gameState)
+
+    return bestAction
+  def defenceAction(self, gameState):
+      actions = gameState.getLegalActions(self.index)
+      for action in actions:
+          succ = gameState.generateSuccessor(self.index, action)
+          
+  def getDefFeatues(self, gameState):
+      features = util.Counter
+      enemies = self.getOpponents(gameState)
+      invaders = []
+      for enemy in enemies:
+          eneState = gameState.getAgentState(enemy)
+          if eneState.isPacman: invaders.append(enemy)
+      target = None
+      dist = 999999
+      for invader in invaders:
+          invState = gameState.getAgentState(invader)
+          tmp = self.getMazeDistance()
+
+
+      
+  def attackAction(self, gameState):
+    actions = gameState.getLegalActions(self.index)
     myPos = gameState.getAgentPosition(self.index)
     if myPos == self.startPos: self.life = self.life - 1
     ghosts = self.getGhosts(gameState)
@@ -107,7 +135,7 @@ class MyAgent(CaptureAgent):
         minimum = max(minimum, value)
     #print("best action = ", bestAction)
     return bestAction
-  
+
   def pacmanTurn(self, gameState, ghosts, curDepth, maximum, minimum):
       actions = gameState.getLegalActions(self.index)
       value = -99999
@@ -185,7 +213,7 @@ class MyAgent(CaptureAgent):
       features["food"] = -close_food_dist
       #eat
       Carrying = gameState.getAgentState(self.index).numCarrying
-      features["eat"] = Carrying
+      features["left food"] = len(foods)
       #home
       if Carrying > 0 and scaredTime == 0:
           teammate = self.index
@@ -198,7 +226,7 @@ class MyAgent(CaptureAgent):
       return features
       
   def getWeights(self, gameState):
-      return {"life":0,"capsule": 1, "eat capsule": 200, "food": 1, "eat": 100, "home": 0}
+      return {"life":0,"capsule": 1, "eat capsule": 200, "food": 1, "left food": -100, "home": 0}
   
   def getPos(self, Pos, action):
       x, y = Pos
