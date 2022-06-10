@@ -98,6 +98,7 @@ class MyAgent(CaptureAgent):
     '''
 
     bestAction = actions[0]
+    #stuced
     if self.stucked(gameState):
         best = 0
         for action in actions:
@@ -110,6 +111,7 @@ class MyAgent(CaptureAgent):
     foods = self.getFood(gameState).asList()
     myStat = gameState.getAgentState(self.index)
     carrying = myStat.numCarrying
+    #escape
     if (myStat.isPacman and len(foods) <= 2) or carrying > self.maxFood: self.mode = "escape"
     else:
         global attacker
@@ -309,10 +311,16 @@ class MyAgent(CaptureAgent):
       features["left capsule"] = len(capsules)
       #food
       foods = self.getFood(gameState).asList()
-      close_food_dist = 987654321
+      foodName = None
+      bestDist = 99999999
       for food in foods:
-          close_food_dist = min(close_food_dist, self.getMazeDistance(pacPos, food))
-      features["food"] = close_food_dist
+          tmp = self.getMazeDistance(pacPos, food)
+          if tmp < bestDist:
+              bestDist = tmp
+              foodName = food
+      features["food"] = bestDist
+      self.debugDraw(pacPos,[0,1,0], True)
+      self.debugDraw(foodName,[1,0,0])
       #left food
       features["left food"] = len(foods)
 
@@ -358,4 +366,10 @@ class MyAgent(CaptureAgent):
               dist = tmp
       return dist
 
+  def generateSuccessor(self, gameState, action):
+      succ = gameState.generateSuccessor(self.index, action)
+      pos = succ.getAgentState(self.index).getPosition()
+      if pos != util.nearestPoint(pos):
+          print("half")
+          return succ.generateSuccessor(self.index, action)
 

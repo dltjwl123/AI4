@@ -99,6 +99,7 @@ class ReflexCaptureAgent(CaptureAgent):
     pos = successor.getAgentState(self.index).getPosition()
     if pos != nearestPoint(pos):
       # Only half a grid position was covered
+      print("half")
       return successor.generateSuccessor(self.index, action)
     else:
       return successor
@@ -109,7 +110,7 @@ class ReflexCaptureAgent(CaptureAgent):
     """
     features = self.getFeatures(gameState, action)
     weights = self.getWeights(gameState, action)
-    print("base ","features = ", features, " total = ", features * weights)
+   # print("base ","features = ", features, " total = ", features * weights)
     return features * weights
 
   def getFeatures(self, gameState, action):
