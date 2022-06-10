@@ -3,12 +3,12 @@
 your_base1,1.0
 your_base2,1.0
 your_base3,1.0
-baseline,-0.0
-Num_Win,3.0
-Avg_Winning_Rate,0.75
+baseline,1.0
+Num_Win,4.0
+Avg_Winning_Rate,1.0
 ,<Average Scores>
-your_base1,4.0
-your_base2,5.0
+your_base1,26.0
+your_base2,34.0
 your_base3,4.0
-baesline,0.0
-Avg_Score,3.25
+baesline,24.0
+Avg_Score,22.0

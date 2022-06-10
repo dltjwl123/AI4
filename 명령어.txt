@@ -1,0 +1,8 @@
+cd C:\Users\Stalemate\OneDrive - korea.ac.kr\바탕 화면\인공지능 과제\final\minicontest2(modified)
+capture.py --keys0 -r baseline -b baseline
+capture.py -r your_best -b baseline
+capture.py -r your_best -b baseline -l tinyCapture
+capture.py -r your_best -b baseline -l officeCapture
+capture.py -r your_best -b baseline -l strategicCapture
+
+self.data.agentStates[index]

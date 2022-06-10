@@ -80,7 +80,7 @@ class MyAgent(CaptureAgent):
     '''
     self.depthLimit = 4
     self.startPos = gameState.getAgentPosition(self.index)
-    self.startState = gameState
+    self.maxFood = len(self.getFood(gameState).asList()) / 4
     self.life = 10
     self.mode = None
     global attacker
@@ -110,7 +110,7 @@ class MyAgent(CaptureAgent):
     foods = self.getFood(gameState).asList()
     myStat = gameState.getAgentState(self.index)
     carrying = myStat.numCarrying
-    if (myStat.isPacman and len(foods) <= 2) or carrying > 3: self.mode = "escape"
+    if (myStat.isPacman and len(foods) <= 2) or carrying > self.maxFood: self.mode = "escape"
     else:
         global attacker
         if self.index == attacker: self.mode = "attack"
@@ -205,12 +205,29 @@ class MyAgent(CaptureAgent):
   def attackAction(self, gameState):
     actions = gameState.getLegalActions(self.index)
     myPos = gameState.getAgentPosition(self.index)
-    if myPos == self.startPos: self.life = self.life - 1
-    ghosts = self.getGhosts(gameState)
     bestAction = actions[0]
     value = -99999
     maximum = 99999
     minimum =-99999
+    if myPos == self.startPos: self.life = self.life - 1
+    ghosts = self.getGhosts(gameState)
+    farGhost = True
+    #farGhost
+    for ghost in ghosts:
+        ghostPos = gameState.getAgentPosition(ghost)
+        dist = self.getMazeDistance(ghostPos, myPos)
+        if dist < 5: 
+            farGhost = False
+            break
+    if farGhost:
+      for action in actions:
+        tmp = self.evaluate(gameState)
+        if tmp > value:
+          value = tmp
+          bestAction = action
+      print("far action = ", bestAction)
+      return bestAction
+    #closeGhost
     for action in actions:
         succ = gameState.generateSuccessor(self.index, action)
         ghostValue = self.ghostTurn(succ, ghosts, 1, maximum, minimum)
@@ -219,6 +236,7 @@ class MyAgent(CaptureAgent):
             bestAction = action
         minimum = max(minimum, value)
     #print("best action = ", bestAction)
+
     return bestAction
 
   def pacmanTurn(self, gameState, ghosts, curDepth, maximum, minimum):
@@ -269,8 +287,10 @@ class MyAgent(CaptureAgent):
   def getFeatures(self, gameState):
       features = util.Counter()
       pacPos = gameState.getAgentPosition(self.index)
-      #life
-      features["life"] = self.life
+      #dead
+      if pacPos == self.startPos:
+          features["dead"] = 1
+      else: features["dead"] = 0
       #capsule
       ghosts = self.getGhosts(gameState)
       scaredTime = 100
@@ -283,6 +303,8 @@ class MyAgent(CaptureAgent):
               close_cap_dist = min(close_cap_dist, self.getMazeDistance(pacPos, cap))
       else: close_cap_dist = 0
       features["capsule"] = close_cap_dist
+      #eat ghost
+      features["eat ghost"] = len(ghosts)
       #eat capsule
       features["left capsule"] = len(capsules)
       #food
@@ -291,14 +313,13 @@ class MyAgent(CaptureAgent):
       for food in foods:
           close_food_dist = min(close_food_dist, self.getMazeDistance(pacPos, food))
       features["food"] = close_food_dist
-      #eat
-      Carrying = gameState.getAgentState(self.index).numCarrying
+      #left food
       features["left food"] = len(foods)
 
       return features
       
   def getWeights(self, gameState):
-      return {"life":0,"capsule": -1, "eat capsule": -200, "food": -1, "left food": -100}
+      return {"dead":0,"capsule": 0, "eat capsule": 0, "food": -1, "left food": -100, "eat ghost":0}
   
   def getPos(self, Pos, action):
       x, y = Pos
@@ -318,11 +339,14 @@ class MyAgent(CaptureAgent):
 
   def stucked(self, gameState):
       if len(self.observationHistory) < 3: return False
-      past = self.observationHistory[-3]
-      pastPos = past.getAgentPosition(self.index)
+      past2 = self.observationHistory[-3]
+      past1 = self.observationHistory[-2]
+      past2Pos = past2.getAgentPosition(self.index)
+      past1Pos = past1.getAgentPosition(self.index)
       curPos = gameState.getAgentPosition(self.index)
-      if pastPos == curPos: return True
+      if past2Pos == curPos and past1Pos == curPos: return True
       return False
+
   def stuckEscape(self, gameState):
       myPos= gameState.getAgentPosition(self.index)
       enemies = self.getOpponents(gameState)
@@ -333,3 +357,5 @@ class MyAgent(CaptureAgent):
           if tmp < dist:
               dist = tmp
       return dist
+
+
