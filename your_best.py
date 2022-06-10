@@ -126,10 +126,8 @@ class MyAgent(CaptureAgent):
     if (carrying > self.maxFood and ghostDist < 5) or (len(foods) <=2 and  not myStat.isPacman): self.mode = "escape"
     #defence only
     elif (len(foods) <= 2 and myStat.isPacman) or (not myStat.isPacman and invaders): self.mode  = "defence"
-    else:
-        global attacker
-        if self.index == attacker: self.mode = "attack"
-        else: "defence"
+    else: self.mode = "attack"
+
     if self.mode == "attack": bestAction = self.attackAction(gameState)
     elif self.mode == "defence": bestAction = self.defenceAction(gameState)
     elif self.mode == "escape": bestAction = self.escapeAction(gameState)
