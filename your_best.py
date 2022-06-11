@@ -84,6 +84,7 @@ class MyAgent(CaptureAgent):
     start.append(self.startPos)
     self.maxFood = len(self.getFood(gameState).asList()) // 10
     self.mode = "attack"
+    self.lastPos = None
 
   def chooseAction(self, gameState):
     """
@@ -100,6 +101,8 @@ class MyAgent(CaptureAgent):
         best = -9999999
         for action in actions:
             succ = gameState.generateSuccessor(self.index, action)
+            myPos = succ.getAgentPosition(self.index)
+            if myPos == self.lastPos: continue
             tmp = self.stuckEscape(succ)
             if tmp > best:
                 best = tmp
@@ -133,6 +136,8 @@ class MyAgent(CaptureAgent):
     elif self.mode == 'escape': bestAction = self.escapeAction(gameState)
     else: bestAction = self.attackAction(gameState)
    # print("index = ", self.index, "mode = ", self.mode)
+    self.lastPos = myPos
+
     return bestAction
 
   def escapeAction(self, gameState):
@@ -172,7 +177,7 @@ class MyAgent(CaptureAgent):
               dist = tmp
               ghostName = ghost
       closeGhostState = gameState.getAgentState(ghostName)
-      if ghosts and closeGhostState.scaredTimer == 0 and dist < : features["ghost dist"] = dist
+      if ghosts and closeGhostState.scaredTimer == 0 and dist < 4: features["ghost dist"] = dist
       else: features["ghost dist"] = 0
       #dead
       if pacPos == self.startPos:
@@ -365,7 +370,7 @@ class MyAgent(CaptureAgent):
       #food
       closeFood = self.closeFood(gameState) # closeFood = (distance, position , left food)
       features["food"] = closeFood[0]
-      self.debugDraw(closeFood[1],[1,0,0], True)
+      self.debugDraw(closeFood[1],[60,94,36], True)
       #left food
       features["left food"] = closeFood[2]
       return features
