@@ -4,5 +4,11 @@ capture.py -r your_best -b baseline
 capture.py -r your_best -b baseline -l tinyCapture
 capture.py -r your_best -b baseline -l officeCapture
 capture.py -r your_best -b baseline -l strategicCapture
-
+capture.py -r your_best -b baseline -l distantCapture
+capture.py -r your_best -b baseline -l crowdedCapture
+capture.py -r your_best -b baseline -l bloxCapture
+capture.py -r your_best -b baseline -l alleyCapture
+capture.py -r your_best -b baseline -l jumboCapture
+capture.py -r your_best -b baseline -l mediumCapture
+capture.py -r your_best -b baseline -l testCapture
 self.data.agentStates[index]

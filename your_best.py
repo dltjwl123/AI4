@@ -45,8 +45,8 @@ def createTeam(firstIndex, secondIndex, isRed,
 ##########
 # Agents #
 ##########
-global attacker
-attacker = None
+
+targeted = [None, None, None, None]
 class MyAgent(CaptureAgent):
   """
   A Dummy agent to serve as an example of the necessary agent structure.
@@ -82,12 +82,7 @@ class MyAgent(CaptureAgent):
     self.depthLimit = 4
     self.startPos = gameState.getAgentPosition(self.index)
     self.maxFood = len(self.getFood(gameState).asList()) / 5
-    self.mode = None
-    global attacker
-    if attacker == None: 
-        self.mode = "attack"
-        attacker = self.index
-    else: self.mode = "defence"
+    self.mode = "attack"
 
   def chooseAction(self, gameState):
     """
@@ -253,7 +248,9 @@ class MyAgent(CaptureAgent):
             bestAction = action
         minimum = max(minimum, value)
     #print("best action = ", bestAction)
-
+    succ = gameState.generateSuccessor(self.index, bestAction)
+    closeFood = self.closeFood(succ)
+    targeted[self.index] = closeFood[1]
     return bestAction
 
   def pacmanTurn(self, gameState, curDepth, maximum, minimum):
@@ -329,18 +326,11 @@ class MyAgent(CaptureAgent):
       #left capsule
       features["left capsule"] = len(capsules)
       #food
-      foods = self.getFood(gameState).asList()
-      foodName = None
-      bestDist = 99999999
-      for food in foods:
-          tmp = self.getMazeDistance(pacPos, food)
-          if tmp < bestDist:
-              bestDist = tmp
-              foodName = food
-      features["food"] = bestDist
-      self.debugDraw(foodName,[1,0,0], True)
+      closeFood = self.closeFood(gameState) # closeFood = (distance, position , left food)
+      features["food"] = closeFood[0]
+      self.debugDraw(closeFood[1],[1,0,0], True)
       #left food
-      features["left food"] = len(foods)
+      features["left food"] = closeFood[2]
 
       return features
       
@@ -378,3 +368,24 @@ class MyAgent(CaptureAgent):
       
       return -self.getMazeDistance(myPos, self.startPos)
 
+  def closeFood(self, gameState):
+      pacPos = gameState.getAgentPosition(self.index)
+      team = self.getTeammateIndex(gameState)
+      targets = [targeted[index] for index in team]
+      foods = self.getFood(gameState).asList()
+      foodName = None
+      bestDist = 99999999
+      for food in foods:
+          if food in targets: continue
+          tmp = self.getMazeDistance(pacPos, food)
+          if tmp < bestDist:
+              bestDist = tmp
+              foodName = food
+      
+      return (bestDist, foodName, len(foods))
+
+  def getTeammateIndex(self, gameState):
+      team = self.getTeam(gameState)
+      team.remove(self.index)
+      
+      return team
