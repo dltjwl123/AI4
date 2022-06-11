@@ -4,6 +4,7 @@ capture.py -r your_best -b baseline
 capture.py -r your_best -b baseline -l tinyCapture
 capture.py -r your_best -b baseline -l officeCapture
 capture.py -r your_best -b baseline -l strategicCapture
+<<<<<<< HEAD
 capture.py -r your_best -b baseline -l distantCapture
 capture.py -r your_best -b baseline -l crowdedCapture
 capture.py -r your_best -b baseline -l bloxCapture
@@ -13,3 +14,7 @@ capture.py -r your_best -b baseline -l mediumCapture
 capture.py -r your_best -b baseline -l testCapture
 
 capture.py -r your_best -b your_best
+=======
+
+self.data.agentStates[index]
+>>>>>>> parent of a5aff6d (escape pruning 이전)
