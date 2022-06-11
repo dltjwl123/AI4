@@ -150,7 +150,6 @@ class MyAgent(CaptureAgent):
 
       features = self.getEscapeFeatures(gameState)
       weights = self.getEscapeWeights()
-      print(features,"total = ", features * weights)
       return features * weights
    
   def getEscapeFeatures(self, gameState):
@@ -165,10 +164,15 @@ class MyAgent(CaptureAgent):
       #ghost dist
       ghosts = self.getGhosts(gameState)
       dist = 9999
+      ghostName = None
       for ghost in ghosts:
           ghostPos = gameState.getAgentPosition(ghost)
-          dist = min(dist, self.getMazeDistance(pacPos, ghostPos))
-      if ghosts: features["ghost dist"] = dist
+          tmp = self.getMazeDistance(pacPos, ghostPos)
+          if tmp < dist:
+              dist = tmp
+              ghostName = ghost
+      closeGhostState = gameState.getAgentState(ghostName)
+      if ghosts and closeGhostState.scaredTimer == 0 and dist < : features["ghost dist"] = dist
       else: features["ghost dist"] = 0
       #dead
       if pacPos == self.startPos:
@@ -364,7 +368,6 @@ class MyAgent(CaptureAgent):
       self.debugDraw(closeFood[1],[1,0,0], True)
       #left food
       features["left food"] = closeFood[2]
-
       return features
       
   def getWeights(self, gameState):
