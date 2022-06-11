@@ -123,22 +123,9 @@ class MyAgent(CaptureAgent):
     elif (len(foods) <= 2 and myStat.isPacman) or (not myStat.isPacman and invaders): self.mode  = "defence"
     else: self.mode = "attack"
 
-    if self.mode == "attack": bestAction = self.attackAction(gameState)
-    elif self.mode == "defence": bestAction = self.defenceAction(gameState)
-    elif self.mode == "escape": bestAction = self.escapeAction(gameState)
+    if self.mode == "defence": bestAction = self.defenceAction(gameState)
+    else: bestAction = self.attackAction(gameState)
     return bestAction
-
-  def escapeAction(self, gameState):
-      actions = gameState.getLegalActions(self.index)
-      bestAction = actions[0]
-      bestScore = -9999999
-      for action in actions:
-          succ = gameState.generateSuccessor(self.index, action)
-          score = self.escapeEvaluate(succ)
-          if score > bestScore:
-              bestScore = score
-              bestAction = action
-      return bestAction
 
   def escapeEvaluate(self, gameState):
       features = self.getEscapeFeatures(gameState)
@@ -216,6 +203,8 @@ class MyAgent(CaptureAgent):
   def attackAction(self, gameState):
     actions = gameState.getLegalActions(self.index)
     myPos = gameState.getAgentPosition(self.index)
+    team = self.getTeammateIndex(gameState)
+    teamPos = [gameState.getAgentPosition(index) for index in team]
     bestAction = actions[0]
     value = -99999
     maximum = 99999
@@ -233,7 +222,8 @@ class MyAgent(CaptureAgent):
     if farGhost:
       for action in actions:
         succ = gameState.generateSuccessor(self.index, action)
-        tmp = self.evaluate(succ)
+        if self.mode == "attack": tmp = self.evaluate(succ)
+        else: tmp = self.escapeEvaluate(succ)
         if tmp > value:
           value = tmp
           bestAction = action
@@ -242,6 +232,9 @@ class MyAgent(CaptureAgent):
     self.depthLimit = min(self.depthDefault, dist)
     for action in actions:
         succ = gameState.generateSuccessor(self.index, action)
+        curPos = succ.getAgentPosition(self.index)
+        if curPos in teamPos: 
+            continue
         ghostValue = self.ghostTurn(succ, 1, maximum, minimum)
         if ghostValue > value:
             value = ghostValue
@@ -260,7 +253,8 @@ class MyAgent(CaptureAgent):
       for action in actions:
           succ = gameState.generateSuccessor(self.index, action)
           if succ.isOver() or curDepth == self.depthLimit:
-              tmp = self.evaluate(gameState)
+              if self.mode == "attack": tmp = self.evaluate(gameState)
+              else: tmp = self.escapeEvaluate(gameState)
               value = max(value, tmp)
               return value
           tmp = self.ghostTurn(succ, curDepth + 1, maximum, minimum)
@@ -389,3 +383,28 @@ class MyAgent(CaptureAgent):
       team.remove(self.index)
       
       return team
+
+  def blockedUCS(self, gameState, targetPos):
+      bestCost = 99999
+      actions = [Directions.NORTH, Directions.EAST, Directions.WEST, Directions.SOUTH]
+      walls = gameState.getwalls().asList()
+      start = gameState.getAgentPosition(self.index)
+      team = self.getTeammateIndex(gameState)
+      teamPos = [gameState.getAgentPosition(i) for i in team]
+      q = util.PriorityQueue()
+      q.push(start, 0)
+      visited = [start]
+      while(not q.isEmpty()):
+          cur = q.pop()
+          if cur == targetPos:
+              bestCost = cur[1]
+              break
+          for action in actions:
+              futurePos = self.getPos(cur[0], action)
+              if futurePos not in walls and futurePos not in teamPos and futurePos not in visited:
+                  visited.append[futurePos]
+                  cost = util.manhattanDistance(futurePos, targetPos) + cur[1]
+                  q.push(futurePos, cost)
+      
+      return bestCost
+      
