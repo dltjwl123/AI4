@@ -118,13 +118,13 @@ class MyAgent(CaptureAgent):
         ghostPos = gameState.getAgentPosition(ghost)
         ghostDist = min(ghostDist, self.getMazeDistance(ghostPos, myPos))
     #escape
-    if (carrying > self.maxFood and ghostDist < 5) or (len(foods) <=2 and  not myStat.isPacman): self.mode = "escape"
+    if (carrying > self.maxFood and ghostDist < 5) or (len(foods) <=2 and myStat.isPacman): self.mode = "escape"
     #defence only
-    elif (len(foods) <= 2 and myStat.isPacman) or (not myStat.isPacman and invaders): self.mode  = "defence"
+    elif (len(foods) <= 2 and not myStat.isPacman) or (not myStat.isPacman and invaders): self.mode  = "defence"
     else: self.mode = "attack"
-
     if self.mode == "defence": bestAction = self.defenceAction(gameState)
     else: bestAction = self.attackAction(gameState)
+
     return bestAction
 
   def escapeEvaluate(self, gameState):
@@ -164,6 +164,7 @@ class MyAgent(CaptureAgent):
   def defEvaluate(self, gameState):
       features = self.getDefFeatures(gameState)
       weights = self.getDefWeight()
+      print(features, features * weights)
       return features * weights
 
   def getDefFeatures(self, gameState):
@@ -192,13 +193,26 @@ class MyAgent(CaptureAgent):
               if tmp < dist:
                   dist = tmp
       features["dist"] = dist
+      #sandwich
+      features["sandwich"] = 0
+      team = self.getTeammateIndex(gameState)
+      teamGhost = [index for index in team if not gameState.getAgentState(index).isPacman]
+      print("index = ", self.index, "team = ", team)
+      if teamGhost:
+        dist = 99999
+        for ghost in teamGhost:
+            teamPos = gameState.getAgentPosition(ghost)
+            tmp = self.getMazeDistance(MyPos, teamPos)
+            if tmp < dist:
+               dist = tmp
+        if features["dist"] - dist < 0: features["sandwich"] = 1
       #ghost
       if myState.isPacman: features["ghost"] = 0
       else: features["ghost"] = 1
       return features
 
   def getDefWeight(self):
-      return {"left invaders": -100, "dist": -1, "ghost": 1000}
+      return {"left invaders": -1000, "dist": -1,"sandwich": 100, "ghost": 10000}
       
   def attackAction(self, gameState):
     actions = gameState.getLegalActions(self.index)
@@ -383,28 +397,3 @@ class MyAgent(CaptureAgent):
       team.remove(self.index)
       
       return team
-
-  def blockedUCS(self, gameState, targetPos):
-      bestCost = 99999
-      actions = [Directions.NORTH, Directions.EAST, Directions.WEST, Directions.SOUTH]
-      walls = gameState.getwalls().asList()
-      start = gameState.getAgentPosition(self.index)
-      team = self.getTeammateIndex(gameState)
-      teamPos = [gameState.getAgentPosition(i) for i in team]
-      q = util.PriorityQueue()
-      q.push(start, 0)
-      visited = [start]
-      while(not q.isEmpty()):
-          cur = q.pop()
-          if cur == targetPos:
-              bestCost = cur[1]
-              break
-          for action in actions:
-              futurePos = self.getPos(cur[0], action)
-              if futurePos not in walls and futurePos not in teamPos and futurePos not in visited:
-                  visited.append[futurePos]
-                  cost = util.manhattanDistance(futurePos, targetPos) + cur[1]
-                  q.push(futurePos, cost)
-      
-      return bestCost
-      

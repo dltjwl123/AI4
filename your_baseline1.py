@@ -22,7 +22,7 @@ import game
 #################
 
 def createTeam(firstIndex, secondIndex, isRed,
-               first = 'attackAgent', second = 'DefenceAgent'):
+               first = 'DummyAgent', second = 'DummyAgent'):
   """
   This function should return a list of two agents that will form the
   team, initialized using firstIndex and secondIndex as their agent
@@ -44,13 +44,8 @@ def createTeam(firstIndex, secondIndex, isRed,
 ##########
 # Agents #
 ##########
-red_food_targets =[]
-red_enemy_targets = []
-blue_food_targets= []
-blue_enemy_targets = []
-class DummyAgent(CaptureAgent):
 
-class AttackAgent(CaptureAgent):
+class DummyAgent(CaptureAgent):
   """
   A Dummy agent to serve as an example of the necessary agent structure.
   You should look at baselineTeam.py for more details about how to
@@ -81,12 +76,6 @@ class AttackAgent(CaptureAgent):
     '''
     Your initialization code goes here, if you need any.
     '''
-    self.attack = False #True = pacman, False = ghost
-    self.target = None
-    self.startPos = gameState.getAgentPosition(self.index)
-    enemies=self.getOpponents()
-    print("type = ", type(enemies), "enemies = ", enemies)
-
 
 
   def chooseAction(self, gameState):
@@ -98,27 +87,5 @@ class AttackAgent(CaptureAgent):
     '''
     You should change this in your own agent.
     '''
-    self.attack = self.isAttack(gameState)
-    if self.attack: values = [self.attackValue(gameState, action) for action in actions]
-    else: values = [self.defenceValue(gameState, action) for action in actions]
-    maxValue = max(values)
-    bestActions = [action for action, value in zip(actions, values) if value == maxValue]
-    return bestActions
 
-  def isAttack(self, gameState):
-      score = self.getScore()
-      team_attack = False
-      if self.red and len(red_enemy_targets) > 0: team_attack = True
-      elif not self.red and len(blue_enemy_targets) > 0: team_attack = True
-      food_left = len(self.getFood(gameState).asList())
-      if food_left <= 2 or score > 2: return False
-      if score < 0 and team_attack: return True
-      return False
-  def attackValue(self, gameState, action):
-      
-      
-    enemies=self.getOpponents()
-    print("type = ", type(enemies), "enemies = ", enemies)
     return random.choice(actions)
-
-
