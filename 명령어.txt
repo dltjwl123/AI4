@@ -11,4 +11,5 @@ capture.py -r your_best -b baseline -l alleyCapture
 capture.py -r your_best -b baseline -l jumboCapture
 capture.py -r your_best -b baseline -l mediumCapture
 capture.py -r your_best -b baseline -l testCapture
-self.data.agentStates[index]
+
+capture.py -r your_best -b your_best

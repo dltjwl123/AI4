@@ -80,8 +80,10 @@ class MyAgent(CaptureAgent):
     '''
     self.depthDefault = 4
     self.depthLimit = 4
+    self.stuckCount = 0
     self.startPos = gameState.getAgentPosition(self.index)
-    self.maxFood = len(self.getFood(gameState).asList()) / 5
+    self.maxFood = 2#len(self.getFood(gameState).asList()) // 10
+    print(self.maxFood)
     self.mode = "attack"
 
   def chooseAction(self, gameState):
@@ -95,7 +97,9 @@ class MyAgent(CaptureAgent):
 
     bestAction = actions[0]
     #stuced
-    if self.stucked(gameState):
+    if self.stuckCount == 0: self.stucked(gameState)
+    if self.stuckCount > 0:
+        self.stukCount -= 1
         best = -9999999
         for action in actions:
             succ = gameState.generateSuccessor(self.index, action)
@@ -104,6 +108,7 @@ class MyAgent(CaptureAgent):
                 best = tmp
                 bestAction = action
         return bestAction
+    
     foods = self.getFood(gameState).asList()
     myStat = gameState.getAgentState(self.index)
     myPos = gameState.getAgentPosition(self.index)
@@ -118,13 +123,14 @@ class MyAgent(CaptureAgent):
         ghostPos = gameState.getAgentPosition(ghost)
         ghostDist = min(ghostDist, self.getMazeDistance(ghostPos, myPos))
     #escape
-    if (carrying > self.maxFood and ghostDist < 5) or (len(foods) <=2 and myStat.isPacman): self.mode = "escape"
+    if (carrying > self.maxFood) or (len(foods) <=2 and myStat.isPacman): self.mode = "escape"
     #defence only
-    elif (len(foods) <= 2 and not myStat.isPacman) or (not myStat.isPacman and invaders): self.mode  = "defence"
+    elif not myStat.isPacman and invaders: self.mode  = "defence"
     else: self.mode = "attack"
+
     if self.mode == "defence": bestAction = self.defenceAction(gameState)
     else: bestAction = self.attackAction(gameState)
-
+    print(self.mode)
     return bestAction
 
   def escapeEvaluate(self, gameState):
@@ -164,7 +170,6 @@ class MyAgent(CaptureAgent):
   def defEvaluate(self, gameState):
       features = self.getDefFeatures(gameState)
       weights = self.getDefWeight()
-      print(features, features * weights)
       return features * weights
 
   def getDefFeatures(self, gameState):
@@ -193,26 +198,13 @@ class MyAgent(CaptureAgent):
               if tmp < dist:
                   dist = tmp
       features["dist"] = dist
-      #sandwich
-      features["sandwich"] = 0
-      team = self.getTeammateIndex(gameState)
-      teamGhost = [index for index in team if not gameState.getAgentState(index).isPacman]
-      print("index = ", self.index, "team = ", team)
-      if teamGhost:
-        dist = 99999
-        for ghost in teamGhost:
-            teamPos = gameState.getAgentPosition(ghost)
-            tmp = self.getMazeDistance(MyPos, teamPos)
-            if tmp < dist:
-               dist = tmp
-        if features["dist"] - dist < 0: features["sandwich"] = 1
       #ghost
       if myState.isPacman: features["ghost"] = 0
       else: features["ghost"] = 1
       return features
 
   def getDefWeight(self):
-      return {"left invaders": -1000, "dist": -1,"sandwich": 100, "ghost": 10000}
+      return {"left invaders": -100, "dist": -1, "ghost": 1000}
       
   def attackAction(self, gameState):
     actions = gameState.getLegalActions(self.index)
@@ -255,9 +247,6 @@ class MyAgent(CaptureAgent):
             bestAction = action
         minimum = max(minimum, value)
     #print("best action = ", bestAction)
-    succ = gameState.generateSuccessor(self.index, bestAction)
-    closeFood = self.closeFood(succ)
-    targeted[self.index] = closeFood[1]
     return bestAction
 
   def pacmanTurn(self, gameState, curDepth, maximum, minimum):
@@ -267,8 +256,8 @@ class MyAgent(CaptureAgent):
       for action in actions:
           succ = gameState.generateSuccessor(self.index, action)
           if succ.isOver() or curDepth == self.depthLimit:
-              if self.mode == "attack": tmp = self.evaluate(gameState)
-              else: tmp = self.escapeEvaluate(gameState)
+              if self.mode == "attack": tmp = self.evaluate(succ)
+              else: tmp = self.escapeEvaluate(succ)
               value = max(value, tmp)
               return value
           tmp = self.ghostTurn(succ, curDepth + 1, maximum, minimum)
@@ -368,8 +357,7 @@ class MyAgent(CaptureAgent):
       past2Pos = past2.getAgentPosition(self.index)
       past1Pos = past1.getAgentPosition(self.index)
       curPos = gameState.getAgentPosition(self.index)
-      if past2Pos == curPos and past1Pos == curPos: return True
-      return False
+      if past2Pos == curPos and past1Pos == curPos: self.stuckCount = 4
 
   def stuckEscape(self, gameState):
       myPos= gameState.getAgentPosition(self.index)
@@ -384,12 +372,14 @@ class MyAgent(CaptureAgent):
       foodName = None
       bestDist = 99999999
       for food in foods:
-          if food in targets: continue
+          if food in targets: 
+              continue
           tmp = self.getMazeDistance(pacPos, food)
           if tmp < bestDist:
               bestDist = tmp
               foodName = food
       
+      targeted[self.index] = foodName
       return (bestDist, foodName, len(foods))
 
   def getTeammateIndex(self, gameState):
