@@ -79,6 +79,7 @@ class MyAgent(CaptureAgent):
     '''
     self.depthDefault = 4
     self.depthLimit = 4
+    self.startState = gameState
     self.startPos = gameState.getAgentPosition(self.index)
     start.append(self.startPos)
     self.maxFood = len(self.getFood(gameState).asList()) // 10
@@ -118,7 +119,12 @@ class MyAgent(CaptureAgent):
         ghostPos = gameState.getAgentPosition(ghost)
         ghostDist = min(ghostDist, self.getMazeDistance(ghostPos, myPos))
     #escape
-    if (carrying > self.maxFood and ghostDist < 10) or (len(foods) <=2 and myStat.isPacman) or carrying > self.maxFood * 2: self.mode = "escape"
+    totalFoods = self.getFoodYouAreDefending(self.startState).asList()
+    enemyCarry = 0
+    for enemy in enemies:
+        enemyState = gameState.getAgentState(enemy)
+        enemyCarry = max(enemyCarry, enemyState.numCarrying)
+    if (carrying > self.maxFood and ghostDist < 10) or (len(foods) <=2 and myStat.isPacman) or carrying > self.maxFood * 2 or (enemyCarry > len(totalFoods) / 2 and myStat.isPacman): self.mode = "escape"
     #defence only
     elif (len(foods) <= 2 and not myStat.isPacman) or (not myStat.isPacman and invaders and myStat.scaredTimer == 0): self.mode  = "defence"
     else: self.mode = "attack"
@@ -126,7 +132,7 @@ class MyAgent(CaptureAgent):
     if self.mode == "defence": bestAction = self.defenceAction(gameState)
     elif self.mode == 'escape': bestAction = self.escapeAction(gameState)
     else: bestAction = self.attackAction(gameState)
-
+   # print("index = ", self.index, "mode = ", self.mode)
     return bestAction
 
   def escapeAction(self, gameState):
@@ -140,11 +146,11 @@ class MyAgent(CaptureAgent):
               bestScore = score
               bestAction = action
       return bestAction
-
   def escapeEvaluate(self, gameState):
+
       features = self.getEscapeFeatures(gameState)
       weights = self.getEscapeWeights()
-      
+      print(features,"total = ", features * weights)
       return features * weights
    
   def getEscapeFeatures(self, gameState):
@@ -156,6 +162,14 @@ class MyAgent(CaptureAgent):
       for i in start:
           dist = min(dist, self.getMazeDistance(myPos, i))
       features["dist"] = dist
+      #ghost dist
+      ghosts = self.getGhosts(gameState)
+      dist = 9999
+      for ghost in ghosts:
+          ghostPos = gameState.getAgentPosition(ghost)
+          dist = min(dist, self.getMazeDistance(pacPos, ghostPos))
+      if ghosts: features["ghost dist"] = dist
+      else: features["ghost dist"] = 0
       #dead
       if pacPos == self.startPos:
           features["dead"] = 1
@@ -164,7 +178,7 @@ class MyAgent(CaptureAgent):
       return features
 
   def getEscapeWeights(self):
-      return {"dist": -1, "dead": -9999}
+      return {"dist": -1, "dead": -9999, "ghost dist": 3}
 
   def defenceAction(self, gameState):
       actions = gameState.getLegalActions(self.index)
