@@ -93,7 +93,6 @@ class MyAgent(CaptureAgent):
     '''
     You should change this in your own agent.
     '''
-
     bestAction = actions[0]
     #stuced
     if self.stucked(gameState):
@@ -160,11 +159,7 @@ class MyAgent(CaptureAgent):
       features = util.Counter()
       pacPos = gameState.getAgentPosition(self.index)
       #dist
-      myPos = gameState.getAgentPosition(self.index)
-      dist = 9999
-      for i in start:
-          dist = min(dist, self.getMazeDistance(myPos, i))
-      features["dist"] = dist
+      features["dist"] = self.getCloseHome(gameState)
       #ghost dist
       ghosts = self.getGhosts(gameState)
       dist = 9999
@@ -182,11 +177,14 @@ class MyAgent(CaptureAgent):
       if pacPos == self.startPos:
           features["dead"] = 1
       else: features["dead"] = 0
-      
+      #Home
+      if not gameState.getAgentState(self.index).isPacman: features["home"] = 1
+      else: features["home"] = 0
+
       return features
 
   def getEscapeWeights(self):
-      return {"dist": -1, "dead": -9999, "ghost dist": -100}
+      return {"dist": -1, "dead": -9999, "ghost dist": -100, "home": 1000}
 
   def defenceAction(self, gameState):
       actions = gameState.getLegalActions(self.index)
@@ -217,11 +215,16 @@ class MyAgent(CaptureAgent):
       #left invaders
       features["left invaders"] = len(invaders)
       #dist
+      team = self.getTeammateIndex(gameState)
+      targets = []
+      for index in team:
+          if targeted[index] != None: targets.append(targeted[index])
       dist = 999999
       MyPos = gameState.getAgentPosition(self.index)
       if invaders:
           for invader in invaders:
               invPos = gameState.getAgentPosition(invader)
+              if len(invaders) > 1 and invPos in targets: continue 
               tmp = self.getMazeDistance(MyPos, invPos)
               if tmp < dist:
                   dist = tmp
@@ -431,9 +434,11 @@ class MyAgent(CaptureAgent):
       return ghosts
 
   def stucked(self, gameState):
-      if len(self.observationHistory) < 3: return False
+      if len(self.observationHistory) < 5: return False
+      past3 = self.observationHistory[-4]
       past2 = self.observationHistory[-3]
       past1 = self.observationHistory[-2]
+
       past2Pos = past2.getAgentPosition(self.index)
       past1Pos = past1.getAgentPosition(self.index)
       curPos = gameState.getAgentPosition(self.index)
@@ -467,3 +472,20 @@ class MyAgent(CaptureAgent):
       team.remove(self.index)
       
       return team
+
+  def getCloseHome(self, gameState):
+      height = gameState.data.layout.height
+      walls = gameState.getWalls()
+      halfway = gameState.data.layout.width // 2
+      myPos = gameState.getAgentPosition(self.index)
+      if self.red: x = halfway
+      else: x = halfway + 1
+      dist = 999999
+      global distanceMap
+      for y in range(1, height):
+          pos = (x, y)
+          if not walls[x][y]:
+              dist = min(dist, self.getMazeDistance(myPos, pos))
+      return dist
+
+
