@@ -77,7 +77,6 @@ class MyAgent(CaptureAgent):
     '''
     Your initialization code goes here, if you need any.
     '''
-    self.depthDefault = 4
     self.depthLimit = 4
     self.startState = gameState
     self.startPos = gameState.getAgentPosition(self.index)
@@ -177,7 +176,7 @@ class MyAgent(CaptureAgent):
               dist = tmp
               ghostName = ghost
       if ghostName != None:closeGhostState = gameState.getAgentState(ghostName)
-      if ghostName != None and closeGhostState.scaredTimer == 0 and dist < 4: features["ghost dist"] = 1
+      if ghostName != None and closeGhostState.scaredTimer == 0 and dist < 2: features["ghost dist"] = 1
       else: features["ghost dist"] = 0
       #dead
       if pacPos == self.startPos:
@@ -192,18 +191,76 @@ class MyAgent(CaptureAgent):
   def defenceAction(self, gameState):
       actions = gameState.getLegalActions(self.index)
       bestAction = actions[0]
-      bestScore = -99999999
+      myPos = gameState.getAgentPosition(self.index)
+      enemies = self.getOpponents(gameState)
+      closePacman = None
+      dist = 99999
+      for enemy in enemies:
+          eneState = gameState.getAgentState(enemy)
+          if eneState.isPacman:
+              enePos = gameState.getAgentPosition(enemy)
+              tmp = self.getMazeDistance(myPos, enePos)
+              if tmp < dist:
+                  dist = tmp
+                  pacman = enemy
+
+      if closePacman == None:
+        bestScore = -99999
+        for action in actions:
+          succ = gameState.generateSuccessor(self.index, action)
+          score = self.defEvaluate(gameState)
+          if score > bestScore:
+             bestScore = score
+             bestAction = action
+        return bestAction
+
+      value = -99999
+      maximum = 99999
+      minimum =-99999
       for action in actions:
           succ = gameState.generateSuccessor(self.index, action)
-          score = self.defEvaluate(succ)
-          if score > bestScore:
-              bestScore = score
-              bestAction = action
+          pacmanValue = self.defPacmanTurn(succ, 1, maximum, minimum, closePacman)
+          if pacmanValue > value:
+            value = pacmanValue
+            bestAction = action
+          minimum = max(minimum, value)
+
       return bestAction
+
+  def defPacmanTurn(self, gameState, curDepth, maximum, minimum, pacmanID):
+      actions = gameState.getLegalActions(pacmanID)
+      value = 99999
+      for action in actions:
+          succ = gameState.generateSuccessor(pacmanID, action)
+          tmp = self.defGhostTurn(succ, curDepth + 1, maximum, minimum, pacmanID)
+          value = min(value, tmp)
+          if value < minimum: return value
+          maximum = min(maximum, value) 
+      
+      return value
+
+  def defGhostTurn(self, gameState, curDepth, maximum, minimum, pacmanID):
+      value = -99999
+      tmp = value
+      actions = gameState.getLegalActions(self.index)
+      for action in actions:
+        succ = gameState.getGenerateSuccsessor(self.index, action)
+        pacState = succ.getAgentState(pacmanID)
+        if succ.isOver() or curDepth == self.depthLimit or not pacState.isPacman:
+          tmp = self.defEvaluate(succ)
+          value = max(value, tmp)
+          return value
+        tmp = self.pacmanTurn(succ, curDepth, maximum, minimum, pacmanID)
+        value = max(value, tmp)
+        if value > maximum: return value
+        minimum = max(maximum, value)
+
+      return value
    
   def defEvaluate(self, gameState):
       features = self.getDefFeatures(gameState)
       weights = self.getDefWeight()
+      print("features = ", features, " total = ", features * weights)
       return features * weights
 
   def getDefFeatures(self, gameState):
@@ -281,7 +338,6 @@ class MyAgent(CaptureAgent):
           bestAction = action
       return bestAction
     #closeGhost
-    self.depthLimit = min(self.depthDefault, dist)
     for action in actions:
         succ = gameState.generateSuccessor(self.index, action)
         curPos = succ.getAgentPosition(self.index)
@@ -334,10 +390,10 @@ class MyAgent(CaptureAgent):
                   chaseDist = dist
                   chaseAction = action
           next_succ = next_succ.generateSuccessor(ghost, chaseAction)
-      tmp = self.pacmanTurn(next_succ, curDepth, maximum, minimum)
-      value = min(value, tmp)
-      if value < minimum: return value
-      maximum = min(maximum, value)
+          tmp = self.pacmanTurn(next_succ, curDepth, maximum, minimum)
+          value = min(value, tmp)
+          if value < minimum: return value
+          maximum = min(maximum, value)
       return value
 
   def evaluate(self, gameState):
@@ -385,10 +441,23 @@ class MyAgent(CaptureAgent):
       if ghostName != None: closeGhostState = gameState.getAgentState(ghostName)
       if ghostName != None and closeGhostState.scaredTimer == 0 and dist < 2: features["ghost dist"] = 1
       else: features["ghost dist"] = 0
+      #sandwich
+      features["sandwich"] = 0
+      team = self.getTeammateIndex(gameState)
+      teamGhost = [index for index in team if not gameState.getAgentState(index).isPacman]
+      if teamGhost:
+        teamDist = 99999
+        for ghost in teamGhost:
+            teamPos = gameState.getAgentPosition(ghost)
+            tmp = self.getMazeDistance(pacPos, teamPos)
+            if tmp < teamDist:
+               teamDist = tmp
+        if teamDist <= 3: features["sandwich"] = 1
+
       return features
       
   def getWeights(self, gameState):
-      return {"dead": -99999,"capsule": -3, "left capsule": -200, "food": -1, "left food": -100, "ghost dist": -1000}
+      return {"dead": -99999,"capsule": -3, "left capsule": -200, "food": -1, "left food": -100, "ghost dist": -1000, "sandwitch": -300}
   
   def getPos(self, Pos, action):
       x, y = Pos
