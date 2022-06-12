@@ -358,6 +358,7 @@ class MyAgent(CaptureAgent):
   def getFeatures(self, gameState):
       features = util.Counter()
       pacPos = gameState.getAgentPosition(self.index)
+      pacState = gameState.getAgentState(self.index)
       #dead
       if pacPos == self.startPos:
           features["dead"] = 1
@@ -405,6 +406,7 @@ class MyAgent(CaptureAgent):
             tmp = self.getMazeDistance(pacPos, teamPos)
             if tmp < teamDist:
                teamDist = tmp
+        
         if teamDist <= 3: features["sandwich"] = 1
 
       return features
