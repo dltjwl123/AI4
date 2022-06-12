@@ -159,7 +159,7 @@ class MyAgent(CaptureAgent):
       features = util.Counter()
       pacPos = gameState.getAgentPosition(self.index)
       #dist
-      features["dist"] = self.getCloseHome(gameState)
+      features["dist"] = self.getCloseHome(gameState, self.red)
       #ghost dist
       ghosts = self.getGhosts(gameState)
       dist = 9999
@@ -177,14 +177,11 @@ class MyAgent(CaptureAgent):
       if pacPos == self.startPos:
           features["dead"] = 1
       else: features["dead"] = 0
-      #Home
-      if not gameState.getAgentState(self.index).isPacman: features["home"] = 1
-      else: features["home"] = 0
 
       return features
 
   def getEscapeWeights(self):
-      return {"dist": -1, "dead": -9999, "ghost dist": -100, "home": 1000}
+      return {"dist": -1, "dead": -9999, "ghost dist": -100}
 
   def defenceAction(self, gameState):
       actions = gameState.getLegalActions(self.index)
@@ -355,7 +352,7 @@ class MyAgent(CaptureAgent):
   def evaluate(self, gameState):
       features = self.getFeatures(gameState)
       weights = self.getWeights(gameState)
-     # print("features = ", features, " total = ", features * weights)
+    #  print("features = ", features, " total = ", features * weights)
       return features * weights
   
   def getFeatures(self, gameState):
@@ -380,11 +377,18 @@ class MyAgent(CaptureAgent):
       features["capsule"] = close_cap_dist
       #left capsule
       features["left capsule"] = len(capsules)
+      #pacman
+      features["pacman"] = pacState.isPacman
       #food
       closeFood = self.closeFood(gameState) # closeFood = (distance, position , left food)
-      features["food"] = closeFood[0]
-      self.debugDraw(closeFood[1],[60,94,36], True)
+      if not pacState.isPacman :
+          features["food"] = self.getCloseHome(gameState, not self.red)
+      else:
+          features["food"] = closeFood[0]
+          if closeFood[1] != None: self.debugDraw(closeFood[1],[60,94,36], True)
       #left food
+      if not pacState.isPacman:
+          features["food"] = self.getCloseHome(gameState, not self.red)
       features["left food"] = closeFood[2]
       #ghost dist
       dist = 9999
@@ -415,7 +419,7 @@ class MyAgent(CaptureAgent):
       return features
       
   def getWeights(self, gameState):
-      return {"dead": -99999,"capsule": -3, "left capsule": -200, "food": -1, "left food": -100, "ghost dist": -1000, "sandwitch": -300}
+      return {"dead": -99999,"capsule": -3, "left capsule": -200, "pacman": 1000, "food": -1, "left food": -100, "ghost dist": -1000, "sandwitch": -300}
   
   def getPos(self, Pos, action):
       x, y = Pos
@@ -473,19 +477,24 @@ class MyAgent(CaptureAgent):
       
       return team
 
-  def getCloseHome(self, gameState):
+  def getCloseHome(self, gameState, red):
       height = gameState.data.layout.height
       walls = gameState.getWalls()
       halfway = gameState.data.layout.width // 2
       myPos = gameState.getAgentPosition(self.index)
-      if self.red: x = halfway
-      else: x = halfway + 1
+      bestPos = None
+      if red: x = halfway - 1
+      else: x = halfway
       dist = 999999
       global distanceMap
       for y in range(1, height):
           pos = (x, y)
           if not walls[x][y]:
-              dist = min(dist, self.getMazeDistance(myPos, pos))
+              tmp = self.getMazeDistance(myPos, pos)
+              if tmp < dist:
+                dist = tmp
+                bestPos = pos
+      self.debugDraw(bestPos, [1,1,1], True)
       return dist
 
 
