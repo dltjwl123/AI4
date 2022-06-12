@@ -4,7 +4,6 @@ capture.py -r your_best -b baseline
 capture.py -r your_best -b baseline -l tinyCapture
 capture.py -r your_best -b baseline -l officeCapture
 capture.py -r your_best -b baseline -l strategicCapture
-<<<<<<< HEAD
 capture.py -r your_best -b baseline -l distantCapture
 capture.py -r your_best -b baseline -l crowdedCapture
 capture.py -r your_best -b baseline -l bloxCapture
@@ -14,7 +13,29 @@ capture.py -r your_best -b baseline -l mediumCapture
 capture.py -r your_best -b baseline -l testCapture
 
 capture.py -r your_best -b your_best
-=======
-
-self.data.agentStates[index]
->>>>>>> parent of a5aff6d (escape pruning 이전)
+capture.py -r your_best -b your_best -l officeCapture
+  def ghostTurn(self, gameState, curDepth, maximum, minimum):
+      pacmans, ghosts = self.getPacmanAndGhost(gameState)
+      value = 99999
+      tmp = value
+      next_succ = gameState
+      pacPos = [gameState.getAgentPosition(index) for index in pacmans]
+      for ghost in ghosts:
+          chaseDist = 99999
+          chaseAction = None
+          actions = gameState.getLegalActions(ghost)
+          ghostPos = gameState.getAgentPosition(ghost)
+          for action in actions:
+              Pos = self.getPos(ghostPos, action)
+              dist = self.getMazeDistance(Pos, pacPos)
+              if dist == 0:
+                  return -99999
+              if chaseDist > dist:
+                  chaseDist = dist
+                  chaseAction = action
+          next_succ = next_succ.generateSuccessor(ghost, chaseAction)
+      tmp = self.pacmanTurn(next_succ, curDepth, maximum, minimum)
+      value = min(value, tmp)
+      if value < minimum: return value
+      maximum = min(maximum, value)
+      return value

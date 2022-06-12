@@ -176,8 +176,8 @@ class MyAgent(CaptureAgent):
           if tmp < dist:
               dist = tmp
               ghostName = ghost
-      closeGhostState = gameState.getAgentState(ghostName)
-      if ghosts and closeGhostState.scaredTimer == 0 and dist < 4: features["ghost dist"] = dist
+      if ghostName != None:closeGhostState = gameState.getAgentState(ghostName)
+      if ghostName != None and closeGhostState.scaredTimer == 0 and dist < 4: features["ghost dist"] = 1
       else: features["ghost dist"] = 0
       #dead
       if pacPos == self.startPos:
@@ -187,7 +187,7 @@ class MyAgent(CaptureAgent):
       return features
 
   def getEscapeWeights(self):
-      return {"dist": -1, "dead": -9999, "ghost dist": 3}
+      return {"dist": -1, "dead": -9999, "ghost dist": -100}
 
   def defenceAction(self, gameState):
       actions = gameState.getLegalActions(self.index)
@@ -237,20 +237,20 @@ class MyAgent(CaptureAgent):
       team = self.getTeammateIndex(gameState)
       teamGhost = [index for index in team if not gameState.getAgentState(index).isPacman]
       if teamGhost:
-        dist = 99999
+        teamDist = 99999
         for ghost in teamGhost:
             teamPos = gameState.getAgentPosition(ghost)
             tmp = self.getMazeDistance(MyPos, teamPos)
-            if tmp < dist:
-               dist = tmp
-        if features["dist"] - dist < 0: features["sandwich"] = 1
+            if tmp < teamDist:
+               teamDist = tmp
+        if teamDist <= 10 or dist <= 5: features["sandwich"] = 1
       #ghost
       if myState.isPacman: features["ghost"] = 0
       else: features["ghost"] = 1
       return features
 
   def getDefWeight(self):
-      return {"left invaders": -1000, "dist": -1,"sandwich": 100, "ghost": 10000}
+      return {"left invaders": -100000, "dist": -1,"sandwich": 100, "ghost": 1000}
       
   def attackAction(self, gameState):
     actions = gameState.getLegalActions(self.index)
@@ -343,7 +343,7 @@ class MyAgent(CaptureAgent):
   def evaluate(self, gameState):
       features = self.getFeatures(gameState)
       weights = self.getWeights(gameState)
-      #print("features = ", features, " total = ", features * weights)
+     # print("features = ", features, " total = ", features * weights)
       return features * weights
   
   def getFeatures(self, gameState):
@@ -373,10 +373,22 @@ class MyAgent(CaptureAgent):
       self.debugDraw(closeFood[1],[60,94,36], True)
       #left food
       features["left food"] = closeFood[2]
+      #ghost dist
+      dist = 9999
+      ghostName = None
+      for ghost in ghosts:
+          ghostPos = gameState.getAgentPosition(ghost)
+          tmp = self.getMazeDistance(pacPos, ghostPos)
+          if tmp < dist:
+              dist = tmp
+              ghostName = ghost
+      if ghostName != None: closeGhostState = gameState.getAgentState(ghostName)
+      if ghostName != None and closeGhostState.scaredTimer == 0 and dist < 2: features["ghost dist"] = 1
+      else: features["ghost dist"] = 0
       return features
       
   def getWeights(self, gameState):
-      return {"dead": -99999,"capsule": -3, "left capsule": -200, "food": -1, "left food": -100}
+      return {"dead": -99999,"capsule": -3, "left capsule": -200, "food": -1, "left food": -100, "ghost dist": -1000}
   
   def getPos(self, Pos, action):
       x, y = Pos
