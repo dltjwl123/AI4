@@ -77,7 +77,7 @@ class MyAgent(CaptureAgent):
     '''
     Your initialization code goes here, if you need any.
     '''
-    self.depthLimit = 4
+    self.depthLimit = 5
     self.startState = gameState
     self.startPos = gameState.getAgentPosition(self.index)
     start.append(self.startPos)
@@ -250,7 +250,7 @@ class MyAgent(CaptureAgent):
       return features
 
   def getDefWeight(self):
-      return {"left invaders": -100000, "dist": -1,"sandwich": 100, "ghost": 1000}
+      return {"left invaders": -100000, "dist": -1,"sandwich": 0, "ghost": 1000}
       
   def attackAction(self, gameState):
     actions = gameState.getLegalActions(self.index)
@@ -271,7 +271,7 @@ class MyAgent(CaptureAgent):
         if dist < 5: 
             farGhost = False
             break
-    if farGhost:
+    if farGhost or not ghosts:
       for action in actions:
         succ = gameState.generateSuccessor(self.index, action)
         if self.mode == "attack": tmp = self.evaluate(succ)
@@ -301,7 +301,7 @@ class MyAgent(CaptureAgent):
       tmp = value
       for action in actions:
           succ = gameState.generateSuccessor(self.index, action)
-          if succ.isOver() or curDepth == self.depthLimit:
+          if succ.isOver() or curDepth >= self.depthLimit:
               if self.mode == "attack": tmp = self.evaluate(succ)
               else: tmp = self.escapeEvaluate(succ)
               value = max(value, tmp)
@@ -319,24 +319,34 @@ class MyAgent(CaptureAgent):
       next_succ = gameState
       pacPos = gameState.getAgentPosition(self.index)
       ghosts = self.getGhosts(gameState)
+      if not ghosts:
+          if self.mode == "attack": return self.evaluate(gameState)
+          else: return self.escapeEvaluate(succ)     
+      ghostName = ghosts[0]
+      dist = 999999
       for ghost in ghosts:
-          chaseDist = 99999
-          chaseAction = None
-          actions = gameState.getLegalActions(ghost)
           ghostPos = gameState.getAgentPosition(ghost)
-          for action in actions:
-              Pos = self.getPos(ghostPos, action)
-              dist = self.getMazeDistance(Pos, pacPos)
-              if dist == 0:
-                  return -99999
-              if chaseDist > dist:
-                  chaseDist = dist
-                  chaseAction = action
-          next_succ = next_succ.generateSuccessor(ghost, chaseAction)
-          tmp = self.pacmanTurn(next_succ, curDepth, maximum, minimum)
+          tmp = self.getMazeDistance(pacPos, ghostPos)
+          if tmp < dist:
+              dist = tmp
+              ghostName = ghost
+      actions = gameState.getLegalActions(ghostName)
+      ghostPos = gameState.getAgentPosition(ghost)
+      for action in actions:
+          succ = gameState.generateSuccessor(ghostName, action)
+          ghostPos = succ.getAgentPosition(ghostName)
+          futurePacPos = succ.getAgentPosition(self.index)
+          if futurePacPos== self.startPos: return -99999
+          if succ.isOver() or curDepth >= self.depthLimit:
+               if self.mode == "attack": tmp = self.evaluate(succ)
+               else: tmp = self.escapeEvaluate(succ)
+               value = min(value, tmp)
+               return value
+          tmp = self.pacmanTurn(succ, curDepth + 1, maximum, minimum)
           value = min(value, tmp)
           if value < minimum: return value
           maximum = min(maximum, value)
+
       return value
 
   def evaluate(self, gameState):
